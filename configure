@@ -1664,6 +1664,8 @@ COMPONENT_LIST="
 EXAMPLE_LIST="
     avio_dir_cmd_example
     avio_reading_example
+    camm_demuxing_example
+    camm_muxing_example
     decode_audio_example
     decode_video_example
     demuxing_decoding_example
@@ -3571,6 +3573,8 @@ yadif_cuda_filter_deps_any="cuda_nvcc cuda_llvm"
 # examples
 avio_dir_cmd_deps="avformat avutil"
 avio_reading_deps="avformat avcodec avutil"
+camm_demuxing_deps="avformat avutil"
+camm_muxing_deps="avformat avcodec avutil swscale swresample"
 decode_audio_example_deps="avcodec avutil"
 decode_video_example_deps="avcodec avutil"
 demuxing_decoding_example_deps="avcodec avformat avutil"

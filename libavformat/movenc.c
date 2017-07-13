@@ -2258,6 +2258,17 @@ static int mov_write_gpmd_tag(AVIOContext *pb, const MOVTrack *track)
     return update_size(pb, pos);
 }
 
+static int mov_write_camm_tag(AVIOContext *pb)
+{
+    int64_t pos = avio_tell(pb);
+    avio_wb32(pb, 0); /* size */
+    ffio_wfourcc(pb, "camm");
+    avio_wb32(pb, 0); /* Reserved */
+    avio_wb16(pb, 0); /* Reserved */
+    avio_wb16(pb, 1); /* Data-reference index */
+    return update_size(pb, pos);
+}
+
 static int mov_write_stsd_tag(AVFormatContext *s, AVIOContext *pb, MOVMuxContext *mov, MOVTrack *track)
 {
     int64_t pos = avio_tell(pb);
@@ -2278,6 +2289,8 @@ static int mov_write_stsd_tag(AVFormatContext *s, AVIOContext *pb, MOVMuxContext
         ret = mov_write_tmcd_tag(pb, track);
     else if (track->par->codec_tag == MKTAG('g','p','m','d'))
         ret = mov_write_gpmd_tag(pb, track);
+    else if (track->par->codec_tag == MKTAG('c','a','m','m'))
+        mov_write_camm_tag(pb);
 
     if (ret < 0)
         return ret;
@@ -2675,6 +2688,9 @@ static int mov_write_hdlr_tag(AVFormatContext *s, AVIOContext *pb, MOVTrack *tra
         } else if (track->par->codec_tag == MKTAG('g','p','m','d')) {
             hdlr_type = "meta";
             descr = "GoPro MET"; // GoPro Metadata
+        } else if (track->par->codec_tag == MKTAG('c','a','m','m')) {
+            hdlr_type = "camm";
+            descr = "CameraMotionMetadataHandler";
         } else {
             av_log(s, AV_LOG_WARNING,
                    "Unknown hldr_type for %s, writing dummy values\n",
@@ -6877,6 +6893,7 @@ const AVCodecTag codec_mp4_tags[] = {
     { AV_CODEC_ID_DVD_SUBTITLE, MKTAG('m', 'p', '4', 's') },
     { AV_CODEC_ID_MOV_TEXT    , MKTAG('t', 'x', '3', 'g') },
     { AV_CODEC_ID_BIN_DATA    , MKTAG('g', 'p', 'm', 'd') },
+    { AV_CODEC_ID_BIN_DATA    , MKTAG('c', 'a', 'm', 'm') },
     { AV_CODEC_ID_NONE        ,    0 },
 };
 
