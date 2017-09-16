@@ -68,7 +68,7 @@ static const int metadata_type_sizes[] = {
   3 * sizeof(float),
   3 * sizeof(float),
   3 * sizeof(float),
-  3 * sizeof(float),
+  3 * sizeof(double),
   3 * sizeof(double) + sizeof(uint32_t) + 7 * sizeof(float),
   3 * sizeof(float)
 };
@@ -128,8 +128,8 @@ static void add_video_stream(OutputStream *ost, AVFormatContext *oc,
   ost->enc = c;
   c->codec_id = codec_id;
   c->bit_rate = 400000;
-  c->width = 352;
-  c->height = 288;
+  c->width = 3840;
+  c->height = 3840 / 2;
   ost->st->time_base = (AVRational){ 1, STREAM_FRAME_RATE };
   c->time_base = ost->st->time_base;
   c->gop_size = 12;
@@ -230,11 +230,11 @@ static int write_camm_packet_data(AVFormatContext *oc, OutputStream *ost)
       AV_WL32(camm_data + 4, /* Z position */ 0);
       break;
     case 5:
-      AV_WL32(camm_data, /* latitude in degrees */
-              float_to_bytes(37.454356 + .001 * ost->current_packet_type));
-      AV_WL32(camm_data + 2, /* longitude in degrees */
-              float_to_bytes(-122.167477 + .001 * ost->current_packet_type));
-      AV_WL32(camm_data + 4, /* altitude in meters */ 0);
+      AV_WL64(camm_data, /* latitude in degrees */
+              double_to_bytes(37.454356 + .001 * ost->current_packet_type));
+      AV_WL64(camm_data + 4, /* longitude in degrees */
+              double_to_bytes(-122.167477 + .001 * ost->current_packet_type));
+      AV_WL64(camm_data + 8, /* altitude in meters */ 0);
       break;
     case 6:
       AV_WL64(camm_data, /* time GPS epoch in seconds */
