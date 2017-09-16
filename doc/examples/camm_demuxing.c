@@ -107,6 +107,23 @@ static void write_3_floats(FILE *file, void *data, ...) {
     va_end(valist);
 }
 
+static void write_3_doubles(FILE *file, void *data, ...) {
+    va_list valist;
+    double d;
+    uint64_t i;
+    int j;
+    va_start(valist, data);
+    for (j = 0; j < 3; ++j) {
+        fputs(va_arg(valist, const char*), file);
+        fprintf(file, "[%d]: ", j);
+        i = AV_RL64(((uint64_t*)data) + j);
+        memcpy(&d, &i, 8);
+        fprintf(file, "%f ", d);
+    }
+    fprintf(file, "\n");
+    va_end(valist);
+}
+
 static void read_double(void **data, double *d) {
     uint64_t i = AV_RL64(*data);
     memcpy(d, &i, 8);
@@ -274,7 +291,7 @@ int main (int argc, char **argv)
                     write_3_floats(camm_dst_file, camm_data, "position", "position", "position");
                     break;
                 case 5:
-                    write_3_floats(camm_dst_file, camm_data, "latitude", "longitude", "altitude");
+                    write_3_doubles(camm_dst_file, camm_data, "latitude", "longitude", "altitude");
                     break;
                 case 6:
                     read_double(&camm_data, &d1);
