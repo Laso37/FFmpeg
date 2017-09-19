@@ -234,7 +234,7 @@ static int write_camm_packet_data(AVFormatContext *oc, OutputStream *ost)
               double_to_bytes(37.454356 + .001 * ost->current_packet_type));
       AV_WL64(camm_data + 4, /* longitude in degrees */
               double_to_bytes(-122.167477 + .001 * ost->current_packet_type));
-      AV_WL64(camm_data + 8, /* altitude in meters */ 0);
+      AV_WL64(camm_data + 8, /* altitude in meters */ double_to_bytes(64));
       break;
     case 6:
       AV_WL64(camm_data, /* time GPS epoch in seconds */
@@ -249,7 +249,7 @@ static int write_camm_packet_data(AVFormatContext *oc, OutputStream *ost)
       AV_WL64(camm_data, /* longitude in degrees */
               double_to_bytes(-122.167477 + .001 * ost->current_packet_type));
       camm_data = (uint16_t*) (((double*)camm_data) + 1);
-      AV_WL32(camm_data, /* altitude in meters */ 0);
+      AV_WL32(camm_data, /* altitude in meters */ float_to_bytes(32));
       camm_data = (uint16_t*) (((float*)camm_data) + 1);
       AV_WL32(camm_data,
               /* horizontal accuracy in meters */ float_to_bytes(7.5));
