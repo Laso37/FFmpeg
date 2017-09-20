@@ -84,10 +84,10 @@ static int open_codec_context(int *stream_idx,
 static void write_2_longs(FILE *f, void *data, const char *name1, const char *name2) {
     fputs(name1, f);
     fputs(": ", f);
-    fprintf(f, "%" PRId64 " ", AV_RL64(data));
+    fprintf(f, "%" PRId64 " ", AV_RB64(data));
     fputs(name2, f);
     fputs(": ", f);
-    fprintf(f, "%" PRId64 "\n", AV_RL64(((uint32_t*)data) + 2));
+    fprintf(f, "%" PRId64 "\n", AV_RB64(((uint32_t*)data) + 2));
 }
 
 static void write_3_floats(FILE *file, void *data, ...) {
@@ -99,7 +99,7 @@ static void write_3_floats(FILE *file, void *data, ...) {
     for (j = 0; j < 3; ++j) {
         fputs(va_arg(valist, const char*), file);
         fprintf(file, "[%d]: ", j);
-        i = AV_RL32(((uint32_t*)data) + j);
+        i = AV_RB32(((uint32_t*)data) + j);
         memcpy(&f, &i, 4);
         fprintf(file, "%f ", f);
     }
@@ -116,7 +116,7 @@ static void write_3_doubles(FILE *file, void *data, ...) {
     for (j = 0; j < 3; ++j) {
         fputs(va_arg(valist, const char*), file);
         fprintf(file, "[%d]: ", j);
-        i = AV_RL64(((uint64_t*)data) + j);
+        i = AV_RB64(((uint64_t*)data) + j);
         memcpy(&d, &i, 8);
         fprintf(file, "%f ", d);
     }
@@ -125,18 +125,18 @@ static void write_3_doubles(FILE *file, void *data, ...) {
 }
 
 static void read_double(void **data, double *d) {
-    uint64_t i = AV_RL64(*data);
+    uint64_t i = AV_RB64(*data);
     memcpy(d, &i, 8);
     *data = ((uint32_t*)(*data)) + 2;
 }
 
 static void read_uint32(void **data, uint32_t *i) {
-    *i = AV_RL32(*data);
+    *i = AV_RB32(*data);
     *data = ((uint32_t*)(*data)) + 1;
 }
 
 static void read_float(void **data, float *f) {
-    uint32_t i = AV_RL32(*data);
+    uint32_t i = AV_RB32(*data);
     memcpy(f, &i, 4);
     *data = ((uint32_t*)(*data)) + 1;
 }
@@ -167,6 +167,7 @@ int main (int argc, char **argv)
     float f1, f2, f3, f4, f5, f6, f7;
     uint32_t gps_fix_type;
     double d1, d2, d3;
+    AVRational *camm_time_base;
 
 #ifndef __STDC_IEC_559__
   av_log(NULL, AV_LOG_INFO, stderr,
@@ -220,6 +221,7 @@ int main (int argc, char **argv)
     if (open_codec_context(&camm_stream_idx, NULL, fmt_ctx, AVMEDIA_TYPE_DATA, src_filename, 0 /* find_decoder */) >= 0) {
         camm_stream = fmt_ctx->streams[camm_stream_idx];
         camm_dst_file = fopen(camm_dst_filename, "wb");
+        camm_time_base = &fmt_ctx->streams[camm_stream_idx]->time_base;
         if (!camm_dst_file) {
             av_log(NULL, AV_LOG_ERROR, "Could not open destination file %s\n", camm_dst_filename);
             exit(1);
@@ -271,9 +273,12 @@ int main (int argc, char **argv)
                        "file contents are formatted incorrectly\n");
                 exit(1);
             }
-            pkt_type = AV_RL16(((uint16_t*)pkt.data) + 1);
-            av_log(NULL, AV_LOG_INFO, "camm_frame_n:%d pkt_size: %d pkt_type: %d\n", camm_frame_count++, pkt.size, pkt_type);
+            pkt_type = AV_RB32(((uint32_t*)pkt.data));
+
+            //av_log(NULL, AV_LOG_INFO, "pts:%s pts_time:%s camm_frame_n:%d pkt_size: %d pkt_type: %d\n", av_ts2str(pkt.pts), av_ts2timestr(pkt.pts, camm_time_base), camm_frame_count++, pkt.size, pkt_type);
+            av_log(NULL, AV_LOG_INFO, "pts:%s pts_time:%s camm_frame_n:%d pkt_size: %d pkt_type: %d\n", av_ts2str(pkt.pts), av_ts2timestr(pkt.pts, camm_time_base), camm_frame_count++, pkt.size, pkt_type);
             camm_data = (void*)(((uint32_t*)pkt.data) + 1);
+            fprintf(camm_dst_file, "pts:%s pts_time:%s ", av_ts2str(pkt.pts), av_ts2timestr(pkt.pts, camm_time_base));
             switch (pkt_type) {
                 case 0:
                     write_3_floats(camm_dst_file, camm_data, "angle_axis", "angle_axis", "angle_axis");
