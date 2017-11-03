@@ -167,6 +167,7 @@ int main (int argc, char **argv)
     float f1, f2, f3, f4, f5, f6, f7;
     uint32_t gps_fix_type;
     double d1, d2, d3;
+    AVRational *camm_time_base;
 
 #ifndef __STDC_IEC_559__
   av_log(NULL, AV_LOG_INFO, stderr,
@@ -220,6 +221,7 @@ int main (int argc, char **argv)
     if (open_codec_context(&camm_stream_idx, NULL, fmt_ctx, AVMEDIA_TYPE_DATA, src_filename, 0 /* find_decoder */) >= 0) {
         camm_stream = fmt_ctx->streams[camm_stream_idx];
         camm_dst_file = fopen(camm_dst_filename, "wb");
+        camm_time_base = &fmt_ctx->streams[camm_stream_idx]->time_base;
         if (!camm_dst_file) {
             av_log(NULL, AV_LOG_ERROR, "Could not open destination file %s\n", camm_dst_filename);
             exit(1);
@@ -272,8 +274,13 @@ int main (int argc, char **argv)
                 exit(1);
             }
             pkt_type = AV_RL16(((uint16_t*)pkt.data) + 1);
-            av_log(NULL, AV_LOG_INFO, "camm_frame_n:%d pkt_size: %d pkt_type: %d\n", camm_frame_count++, pkt.size, pkt_type);
+            av_log(NULL, AV_LOG_INFO,
+                   "pts:%s pts_time:%s camm_frame_n:%d pkt_size: %d pkt_type: %d\n",
+                   av_ts2str(pkt.pts), av_ts2timestr(pkt.pts, camm_time_base),
+                   camm_frame_count++, pkt.size, pkt_type);
             camm_data = (void*)(((uint32_t*)pkt.data) + 1);
+            fprintf(camm_dst_file, "pts:%s pts_time:%s ", av_ts2str(pkt.pts),
+                    av_ts2timestr(pkt.pts, camm_time_base));
             switch (pkt_type) {
                 case 0:
                     write_3_floats(camm_dst_file, camm_data, "angle_axis", "angle_axis", "angle_axis");
