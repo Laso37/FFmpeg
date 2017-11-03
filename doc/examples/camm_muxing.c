@@ -45,6 +45,7 @@
 #include <libavcodec/avcodec.h>
 
 #define STREAM_DURATION   10.0
+#define FRAME_WIDTH 3840
 #define STREAM_FRAME_RATE 25
 #define STREAM_PIX_FMT  AV_PIX_FMT_YUV420P
 #define SCALE_FLAGS SWS_BICUBIC
@@ -128,8 +129,8 @@ static void add_video_stream(OutputStream *ost, AVFormatContext *oc,
   ost->enc = c;
   c->codec_id = codec_id;
   c->bit_rate = 400000;
-  c->width = 3840;
-  c->height = 3840 / 2;
+  c->width = FRAME_WIDTH;
+  c->height = FRAME_WIDTH / 2;
   ost->st->time_base = (AVRational){ 1, STREAM_FRAME_RATE };
   c->time_base = ost->st->time_base;
   c->gop_size = 12;
@@ -231,9 +232,9 @@ static int write_camm_packet_data(AVFormatContext *oc, OutputStream *ost)
       break;
     case 5:
       AV_WL64(camm_data, /* latitude in degrees */
-              double_to_bytes(37.454356 + .001 * ost->current_packet_type));
+              double_to_bytes(47.454356 + .01 * ost->current_packet_type));
       AV_WL64(camm_data + 4, /* longitude in degrees */
-              double_to_bytes(-122.167477 + .001 * ost->current_packet_type));
+              double_to_bytes(-112.167477 + .01 * ost->current_packet_type));
       AV_WL64(camm_data + 8, /* altitude in meters */ double_to_bytes(64));
       break;
     case 6:
@@ -244,10 +245,10 @@ static int write_camm_packet_data(AVFormatContext *oc, OutputStream *ost)
       AV_WL32(camm_data, /* GPS fix type */ 0);
       camm_data = (uint16_t*) (((int32_t*)camm_data) + 1);
       AV_WL64(camm_data, /* latitude in degrees */
-              double_to_bytes(37.454356 + .001 * ost->current_packet_type));
+              double_to_bytes(47.454356 + .01 * ost->current_packet_type));
       camm_data = (uint16_t*) (((double*)camm_data) + 1);
       AV_WL64(camm_data, /* longitude in degrees */
-              double_to_bytes(-122.167477 + .001 * ost->current_packet_type));
+              double_to_bytes(-112.167477 + .01 * ost->current_packet_type));
       camm_data = (uint16_t*) (((double*)camm_data) + 1);
       AV_WL32(camm_data, /* altitude in meters */ float_to_bytes(32));
       camm_data = (uint16_t*) (((float*)camm_data) + 1);
@@ -470,7 +471,7 @@ int main(int argc, char **argv)
   }
   filename = argv[1];
   av_log_set_level(AV_LOG_DEBUG);
-  avformat_alloc_output_context2(&oc, NULL, "mp4", NULL);
+  avformat_alloc_output_context2(&oc, NULL, "mov", NULL);
   if (!oc) {
     av_log(NULL, AV_LOG_ERROR, "Could not allocate output context.\n");
     return 1;
@@ -484,15 +485,15 @@ int main(int argc, char **argv)
     av_log(NULL, AV_LOG_ERROR, "Could not find video codec for file format.\n");
     return 1;
   }
-  if (!oc->metadata) {
-    av_log(NULL, AV_LOG_ERROR, "There is no metadata for the format context.\n");
-  }
   // Set the creation time metadata.
   time(&timer);
   tm_info = localtime(&timer);
   strftime(creation_time, 40, "%Y-%m-%dT%H:%M:%SZ", tm_info);
   av_log(NULL, AV_LOG_INFO, "Setting creation time: %s\n", creation_time);
   av_dict_set(&oc->metadata, "creation_time", creation_time, 0);
+  av_dict_set(&oc->metadata, "make", "Camera make", 0);
+  av_dict_set(&oc->metadata, "model", "Camera model", 0);
+
   add_video_stream(&video_st, oc, &video_codec, fmt->video_codec);
   add_camm_stream(&camm_st, oc);
   open_video_codec(oc, video_codec, &video_st);
