@@ -45,8 +45,9 @@
 #include <libavcodec/avcodec.h>
 
 #define STREAM_DURATION   10.0
-#define FRAME_WIDTH 3840
-#define STREAM_FRAME_RATE 25
+#define FRAME_WIDTH 11000
+#define CAMM_STREAM_FRAME_RATE 100
+#define STREAM_FRAME_RATE 5
 #define STREAM_PIX_FMT  AV_PIX_FMT_YUV420P
 #define SCALE_FLAGS SWS_BICUBIC
 
@@ -153,8 +154,8 @@ static void add_camm_stream(OutputStream *ost, AVFormatContext *oc)
     exit(1);
   }
   ost->st->id = oc->nb_streams-1;
-  ost->st->time_base = (AVRational){ 1, STREAM_FRAME_RATE };
-  ost->time_base = (AVRational){ 1, STREAM_FRAME_RATE };
+  ost->st->time_base = (AVRational){ 1, CAMM_STREAM_FRAME_RATE };
+  ost->time_base = (AVRational){ 1, CAMM_STREAM_FRAME_RATE };
   ost->next_pts = 0;
   ost->tmp_data =
     (uint16_t*) av_malloc(get_camera_metadata_motion_data_size());
@@ -240,7 +241,7 @@ static int write_camm_packet_data(AVFormatContext *oc, OutputStream *ost)
     case 6:
       AV_WL64(camm_data, /* time GPS epoch in seconds */
               double_to_bytes(1500507374.825
-                              + ((double)1) / STREAM_FRAME_RATE));
+                              + ((double)1) / CAMM_STREAM_FRAME_RATE));
       camm_data = (uint16_t*) (((double*)camm_data) + 1);
       AV_WL32(camm_data, /* GPS fix type */ 0);
       camm_data = (uint16_t*) (((int32_t*)camm_data) + 1);
@@ -399,23 +400,29 @@ static int write_video_frame(AVFormatContext *oc, OutputStream *ost)
   frame = get_video_frame(ost);
   av_init_packet(&pkt);
   ret = avcodec_send_frame(c, frame);
+  if (ret == AVERROR_EOF) {
+    return 1;
+  }
   if (ret < 0) {
     av_log(NULL, AV_LOG_ERROR, "Error encoding video frame: %s\n", av_err2str(ret));
     exit(1);
   }
   while (1) {
     ret = avcodec_receive_packet(c, &pkt);
-    if (ret == 0) {
+    if (ret == AVERROR_EOF || ret == AVERROR(EAGAIN)) {
+      break;
+    }
+    if (ret < 0) {
+      av_log(NULL, AV_LOG_ERROR, "Error while writing video packet: %s\n", av_err2str(ret));
+      break;
+    }
+    else {
+      av_log(NULL, AV_LOG_INFO, "writing video packet\n");
       if ((ret = write_packet(oc, &c->time_base, ost->st, &pkt)) < 0) {
         av_log(NULL, AV_LOG_ERROR, "Error while writing video frame: %s\n", av_err2str(ret));
         exit(1);
       }
       got_packet = 1;
-    } else if (ret == AVERROR(EINVAL)) {
-      av_log(NULL, AV_LOG_ERROR, "Error while encoding video frame :%s\n", av_err2str(ret));
-      exit(1);
-    } else {
-      break;
     }
   }
   return (frame || got_packet) ? 0 : 1;
@@ -471,7 +478,7 @@ int main(int argc, char **argv)
   }
   filename = argv[1];
   av_log_set_level(AV_LOG_DEBUG);
-  avformat_alloc_output_context2(&oc, NULL, "mov", NULL);
+  avformat_alloc_output_context2(&oc, NULL, "mp4", NULL);
   if (!oc) {
     av_log(NULL, AV_LOG_ERROR, "Could not allocate output context.\n");
     return 1;
@@ -494,7 +501,7 @@ int main(int argc, char **argv)
   av_dict_set(&oc->metadata, "make", "Camera make", 0);
   av_dict_set(&oc->metadata, "model", "Camera model", 0);
 
-  add_video_stream(&video_st, oc, &video_codec, fmt->video_codec);
+  add_video_stream(&video_st, oc, &video_codec, AV_CODEC_ID_VP9);
   add_camm_stream(&camm_st, oc);
   open_video_codec(oc, video_codec, &video_st);
   av_log(NULL, AV_LOG_INFO, "Opening the output file.\n");
