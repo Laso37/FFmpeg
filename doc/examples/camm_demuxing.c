@@ -191,6 +191,8 @@ int main (int argc, char **argv)
         av_log(NULL, AV_LOG_ERROR, "Could not open source file %s\n", src_filename);
         exit(1);
     }
+    fmt_ctx->probesize = 1000000000;
+    fmt_ctx->max_analyze_duration = 1000000000;
     if (avformat_find_stream_info(fmt_ctx, NULL) < 0) {
         av_log(NULL, AV_LOG_ERROR, "Could not find stream information\n");
         exit(1);
