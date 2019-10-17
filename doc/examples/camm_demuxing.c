@@ -169,14 +169,6 @@ int main (int argc, char **argv)
     double d1, d2, d3;
     AVRational *camm_time_base;
 
-#ifndef __STDC_IEC_559__
-  av_log(NULL, AV_LOG_INFO,
-       "Please ensure your compiler uses IEEE 754 \n"
-       "floating point representation. If so, you may safely comment out \n"
-       "this guard.\n");
-  exit(1);
-#endif
-
     if (argc != 4) {
         av_log(NULL, AV_LOG_ERROR, "usage: %s input_file video_output_file camm_output_file\n"
                 "This program shows how to demux video and camm data from a \n"
