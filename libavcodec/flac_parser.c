@@ -208,16 +208,20 @@ static int find_headers_search(FLACParseContext *fpc, uint8_t *buf,
     uint32_t x;
 
     for (i = 0; i < mod_offset; i++) {
-        if ((AV_RB16(buf + i) & 0xFFFE) == 0xFFF8)
-            size = find_headers_search_validate(fpc, search_start + i);
+        if ((AV_RB16(buf + i) & 0xFFFE) == 0xFFF8) {
+            int ret = find_headers_search_validate(fpc, search_start + i);
+            size = FFMAX(size, ret);
+        }
     }
 
     for (; i < buf_size - 1; i += 4) {
         x = AV_RN32(buf + i);
         if (((x & ~(x + 0x01010101)) & 0x80808080)) {
             for (j = 0; j < 4; j++) {
-                if ((AV_RB16(buf + i + j) & 0xFFFE) == 0xFFF8)
-                    size = find_headers_search_validate(fpc, search_start + i + j);
+                if ((AV_RB16(buf + i + j) & 0xFFFE) == 0xFFF8) {
+                    int ret = find_headers_search_validate(fpc, search_start + i + j);
+                    size = FFMAX(size, ret);
+                }
             }
         }
     }
@@ -313,7 +317,7 @@ static int check_header_mismatch(FLACParseContext  *fpc,
         (child_fi->frame_or_sample_num
          != header_fi->frame_or_sample_num + 1)) {
         FLACHeaderMarker *curr;
-        int expected_frame_num, expected_sample_num;
+        int64_t expected_frame_num, expected_sample_num;
         /* If there are frames in the middle we expect this deduction,
            as they are probably valid and this one follows it */
 

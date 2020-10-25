@@ -30,9 +30,23 @@
 #include "../dnn_interface.h"
 #include "libavformat/avio.h"
 
-typedef enum {INPUT = 0, CONV = 1, DEPTH_TO_SPACE = 2, MIRROR_PAD = 3, MAXIMUM = 4} DNNLayerType;
+/**
+ * the enum value of DNNLayerType should not be changed,
+ * the same values are used in convert_from_tensorflow.py
+ * and, it is used to index the layer execution/load function pointer.
+ */
+typedef enum {
+    DLT_INPUT = 0,
+    DLT_CONV2D = 1,
+    DLT_DEPTH_TO_SPACE = 2,
+    DLT_MIRROR_PAD = 3,
+    DLT_MAXIMUM = 4,
+    DLT_MATH_BINARY = 5,
+    DLT_MATH_UNARY = 6,
+    DLT_COUNT
+} DNNLayerType;
 
-typedef enum {DOT_INPUT = 1, DOT_OUTPUT = 2, DOT_INTERMEDIATE = DOT_INPUT | DOT_INPUT} DNNOperandType;
+typedef enum {DOT_INPUT = 1, DOT_OUTPUT = 2, DOT_INTERMEDIATE = DOT_INPUT | DOT_OUTPUT} DNNOperandType;
 
 typedef struct Layer{
     DNNLayerType type;
@@ -106,6 +120,8 @@ DNNReturnType ff_dnn_execute_model_native(const DNNModel *model, DNNData *output
 
 void ff_dnn_free_model_native(DNNModel **model);
 
+// NOTE: User must check for error (return value <= 0) to handle
+// case like integer overflow.
 int32_t calculate_operand_data_length(const DnnOperand *oprd);
 int32_t calculate_operand_dims_count(const DnnOperand *oprd);
 #endif

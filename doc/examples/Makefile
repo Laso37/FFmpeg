@@ -1,4 +1,4 @@
-EXAMPLES-$(CONFIG_AVIO_DIR_CMD_EXAMPLE)      += avio_dir_cmd
+EXAMPLES-$(CONFIG_AVIO_LIST_DIR_EXAMPLE)     += avio_list_dir
 EXAMPLES-$(CONFIG_AVIO_READING_EXAMPLE)      += avio_reading
 EXAMPLES-$(CONFIG_CAMM_DEMUXING_EXAMPLE)     += camm_demuxing
 EXAMPLES-$(CONFIG_CAMM_MUXING_EXAMPLE)       += camm_muxing
